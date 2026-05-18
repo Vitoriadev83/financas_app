@@ -1,0 +1,199 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+from datetime import date
+from database import (criar_tabelas, salvar_configuracao, buscar_configuracao, adicionar_conta, adicionar_lancamento, buscar_lacamentos, buscar_contas, atualizar_status_conta,deletar_lancamento)
+
+st.set_page_config(
+  page_title = "Minhas Finanças",
+  page_icon = "💰",
+  layout = "centered"
+)
+
+st.markdown("""
+    <style>
+        .stApp {background-color:  #0f0f0f; color: white;}
+        .stButton>button {background-color: #6C63FF;
+            color: white;
+            border-radius: 10px;
+            width: 100%;
+            padding: 10px;
+            border: none;
+        }
+        .stTextInput>div>input,
+        .stNumberInput>div>input {
+            background-color: #1e1e1e;
+            color: white;
+            border-radius: 8px;
+        }
+        h1, h2, h3 { color: #6C63FF; }
+        .stTabs [data-baseweb="tab"] {
+            color: white;
+        }
+        .stTabs [aria-selected="true"] {
+            background-color: #6C63FF;
+            border-radius: 8px;
+        }
+    </style>
+  """, unsafe_allow_html = True)
+
+criar_tabelas()
+
+st.title("💰Minhas Finanças")
+st.caption("Controle financeiro pessoal")
+st.divider()
+
+aba1, aba2, aba3, aba4 = st.tabs([
+  "⚙️Configuração",
+  "💾Dashbord",
+  "💵Lançamentos",
+  "🗓️Contas a pagar"
+])
+
+#______ABA 1:CONFIGURAÇÃO_____________
+with aba1:
+  st.subheader("Configuaração do perfil financeiro")    
+
+  config = buscar_configuracao()
+  salario_atual = config[0] if config else 0.0
+  meta_atual = config[1] if config else 0.0
+
+  salario = st.number_input("Seu salário mensal (R$)",
+        min_value= 0.0,
+        value= float(salario_atual),
+        step= 100.0,
+        format= "%.2f"
+  )
+
+  meta = st.number_input(
+    "Meta de economia mensal (R$)",
+    min_value= 0.0,
+    value= float(meta_atual),
+    step=   50.0,
+    format= "%.2f"
+  )
+
+  if st.button("Salvar confuração"):
+    salvar_configuracao(salario, meta)
+    st.success("Configuração salva com sucesso!")
+
+
+#_____ABA 2: DASHBOARD____________
+
+with aba2:
+
+  st.subheader("Resumo de mês")
+
+  config = buscar_configuracao()
+
+  if not config:
+    st.warning("Configure seu salário na aba Configuração primeiro.")
+  else:
+    salario = config[0]
+    meta = config[1]
+
+    lancamentos = buscar_lacamentos()
+
+    #Calculos totais
+
+    total_entradas = sum(1[2] for l in lancamentos if l[3] == "Entrada")
+    total_saidas =  sum(1[2] for l in lancamentos if l[3] == "Saída")
+    saldo = salario + total_entradas - total_saidas
+    economia = saldo - (salario - meta)
+
+    #Cards com métricas
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💵 Saldo atual", f"R$ {saldo:.2f}")
+    col2.metric("📈 Total entradas",f"R$ {total_entradas:.2f}")
+    col3. metric("📈 Total saídas", f"R$ {total_saidas:.2f}")
+
+    st.divider()
+
+    #Barra de progresso da meta
+
+    st.markdown("**Meta de economia**")
+    progresso = min(economia / meta, 1.0) if meta >0 else 0
+    st.progress(progresso)
+    st.caption(f"R${economia:.2f} economizados de R$ {meta:.2f}")
+
+    st.divider()
+
+    #Gráfico de gastos por categoria
+
+    if lancamentos:
+      saidas = [(l[4], l[2]) for l in lancamentos if l[3] == "Saída"]
+      if saidas:
+        df = pd.DataFrame(saidas, columns= ["Categoria", "Valor"])
+        df_grupo = df.groupby("Categoria"). sum().reset_index()
+        fig = px.pie(
+          df_grupo,
+          names = "Categoria",
+          values = "Valor",
+          title = "Gastos por categoria",
+          color_discrete_sequence=px.colors.sequential.Purples_r
+          )
+        st.plotly_chart (fig, use_container_width=True)
+    else:
+      st.info("Nenhum lançamento registrado ainda.")
+
+
+#_____ABA 3:  LANÇAMENTOS_______________________________
+
+with aba3:
+  st.subheader("Registrar lançamento")
+
+  col1, col2 = st.columns(2)
+  with col1:
+    tipo = st.selectbox("Tipo", ["Saída", "Entrada"])
+    valor = st.number_input("Valor (R$)", min_value=0.0, step=10.0, format="%.2f")
+
+  with col2:
+    categorias_saida=[
+      "Alimentação", "Aluguel", "Saúde", "Transporte",
+      "Educação", "Lazer", "Roupas", "Contas fixas", "Outros"
+    ]
+    categorias_entrada = ["Salário extra", "Freelance", "Presente", "Outros"]
+    categorias = categorias_saida if tipo == "Saída" else  categorias_entrada
+    categorias = st.selectbox("Categoria", categorias)
+    data = st. datetime_input("Data", value=date.today())
+
+  descricao = st.text_input ("Descrição (ex: Mercado, Uber, etc)")
+
+  if st.button("Registrar lançamento"):
+    if descricao and valor > 0:
+      adicionar_lancamento(descricao, valor, tipo, categorias, str(data))
+      st.success("Lançamento registrado!")
+      st.rerun()
+    else:
+      st.warning("Preencha a descrição e o valor.")
+
+  st.divider()
+  st.subheader("Histórico")
+
+  lancamentos = buscar_lacamentos()
+  if lancamentos:
+    for l in lancamentos:
+      col1, col2, col3 = st.columns([3, 1, 1])
+      emoji = "🔴" if l[3] =="Saída" else "🟢"
+      col1.markdown (f"{emoji} **{l[1]}** - {l[4]} - {l[5]}")
+      col2.markdown (f"R$ {l[2]:.2f}")
+      if col3.button("🗑️",  key= f"del_{l[3]}"):
+        deletar_lancamento(l[0])
+        st.rerun()
+
+  else:
+    st.info("Nenhum lançamento ainda.")
+
+
+          
+
+
+
+
+  
+
+
+
+
+
