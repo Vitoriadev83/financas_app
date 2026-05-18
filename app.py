@@ -23,8 +23,9 @@ st.markdown("""
         .stTextInput>div>input,
         .stNumberInput>div>input {
             background-color: #1e1e1e;
-            color: white;
+            color: white !important;
             border-radius: 8px;
+            border: 1px solid #6C63FF;
         }
         h1, h2, h3 { color: #6C63FF; }
         .stTabs [data-baseweb="tab"] {
@@ -34,6 +35,16 @@ st.markdown("""
             background-color: #6C63FF;
             border-radius: 8px;
         }
+
+        .stNumberInput label,
+        .stTextInput label,
+        .stSelectBox label,
+        .stDateInput label{
+            color: white !important;
+            font-size: 16px !important;
+            font-weight: 600 !important;
+        }
+        
     </style>
   """, unsafe_allow_html = True)
 
@@ -45,7 +56,7 @@ st.divider()
 
 aba1, aba2, aba3, aba4 = st.tabs([
   "⚙️Configuração",
-  "💾Dashbord",
+  "💾Dashboard",
   "💵Lançamentos",
   "🗓️Contas a pagar"
 ])
@@ -156,7 +167,7 @@ with aba3:
     categorias_entrada = ["Salário extra", "Freelance", "Presente", "Outros"]
     categorias = categorias_saida if tipo == "Saída" else  categorias_entrada
     categorias = st.selectbox("Categoria", categorias)
-    data = st. datetime_input("Data", value=date.today())
+    data = st. datetime_input("Data", value=date.today(), format="DD/MM/YYYY")
 
   descricao = st.text_input ("Descrição (ex: Mercado, Uber, etc)")
 
@@ -185,6 +196,60 @@ with aba3:
   else:
     st.info("Nenhum lançamento ainda.")
 
+
+#_____ABA 4: CONTAS A PAGAR________________________________
+
+with aba4:
+  st.subheader("Cadastrar conta")
+
+  col1,col2 = st.columns(2)
+  with col1:
+    desc_conta = st.text_input("Nome da conta (ex: Luz, Internet)")
+    valor_conta = st.number_input("Valor (R$)", min_value=0.0,
+                                  step=10.0, format="%.f", key="valor_conta")
+  
+  with col2:
+    vencimento = st.date_input("Vencimento", key="venc", format="DD/MM/YYYY")
+
+  if st.button ("Adicionar conta"):
+    if desc_conta and valor_conta > 0:
+      adicionar_conta(desc_conta, valor_conta, str(vencimento))
+      st.success("Conta adicionada")
+      st.rerun()
+    else:
+      st.warning("Preencha todos os campos")
+
+  st.divider()
+  st.subheader("Contas cadastradas")
+
+  contas = buscar_contas()
+  if contas:
+    for c in contas:
+      col1, col2, col3 = st.columns([3, 1, 1])
+ 
+      #Emoji por status
+      if c[4] == "Paga":
+        emoji = "✅"
+      elif c[4] == "Atrasada":
+        emoji = "🔴"
+      else:
+        emoji = "⌛"
+
+      col1.markdown(f"{emoji}  **{c[1]} **- vence {c[3]}") 
+      col2.markdown(f"R$ {c[2]:.2f}")
+
+      novo_status = col3.selectbox(
+        "Status",
+        ["Pendente", "Paga", "Atrasada"].index(c[4]),
+        key= f"status_{c[0]}"
+        )
+
+      if novo_status != c[4]:
+        atualizar_status_conta(c[0], novo_status)
+        st.rerun()
+  
+  else:
+    st.info("Nenhuma conta cadastrada ainda.")
 
           
 
