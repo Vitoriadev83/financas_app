@@ -102,7 +102,7 @@ def atualizar_status_conta(conta_id, status):
 def deletar_lancamento(lancamento_id):
   conn = conectar()
   cursor = conn.cursor()
-  cursor.execute("DELETE FROM lancamentos WHERE id = ?", (lancamento_id))
+  cursor.execute("DELETE FROM lancamentos WHERE id = ?", (lancamento_id,))
   conn.commit()
   conn.close()
 

@@ -107,8 +107,8 @@ with aba2:
 
     #Calculos totais
 
-    total_entradas = sum(1[2] for l in lancamentos if l[3] == "Entrada")
-    total_saidas =  sum(1[2] for l in lancamentos if l[3] == "Saída")
+    total_entradas = sum(l[2] for l in lancamentos if l[3] == "Entrada")
+    total_saidas =  sum(l[2] for l in lancamentos if l[3] == "Saída")
     saldo = salario + total_entradas - total_saidas
     economia = saldo - (salario - meta)
 
@@ -124,7 +124,7 @@ with aba2:
     #Barra de progresso da meta
 
     st.markdown("**Meta de economia**")
-    progresso = min(economia / meta, 1.0) if meta >0 else 0
+    progresso = max(0.0, min(economia / meta, 1.0)) if meta > 0 else 0.0
     st.progress(progresso)
     st.caption(f"R${economia:.2f} economizados de R$ {meta:.2f}")
 
@@ -189,7 +189,7 @@ with aba3:
       emoji = "🔴" if l[3] =="Saída" else "🟢"
       col1.markdown (f"{emoji} **{l[1]}** - {l[4]} - {l[5]}")
       col2.markdown (f"R$ {l[2]:.2f}")
-      if col3.button("🗑️",  key= f"del_{l[3]}"):
+      if col3.button("🗑️",  key= f"del_{l[0]}"):
         deletar_lancamento(l[0])
         st.rerun()
 
@@ -240,7 +240,8 @@ with aba4:
 
       novo_status = col3.selectbox(
         "Status",
-        ["Pendente", "Paga", "Atrasada"].index(c[4]),
+        ["Pendente", "Paga", "Atrasada"],
+        index=0 if c[4] not in ["Pendente", "Paga", "Atrasada"] else ["Pendente", "Paga", "Atrasada"].index(c[4]),
         key= f"status_{c[0]}"
         )
 
