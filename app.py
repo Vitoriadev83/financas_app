@@ -84,7 +84,7 @@ with aba1:
     format= "%.2f"
   )
 
-  if st.button("Salvar confuração"):
+  if st.button("Salvar configuração"):
     salvar_configuracao(salario, meta)
     st.success("Configuração salva com sucesso!")
 
