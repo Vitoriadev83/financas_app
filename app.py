@@ -126,7 +126,10 @@ with aba2:
     st.markdown("**Meta de economia**")
     progresso = max(0.0, min(economia / meta, 1.0)) if meta > 0 else 0.0
     st.progress(progresso)
-    st.caption(f"R${economia:.2f} economizados de R$ {meta:.2f}")
+    if economia >= 0:
+      st.success(f"✅ Você economizou R\$ {economia:.2f} da meta de R$ {meta:.2f}")
+    else:
+      st.warning(f"⚠️ Você gastou R\$ {abs(economia):.2f} além do permitido para atingir sua meta de R$ {meta:.2f}")
 
     st.divider()
 
