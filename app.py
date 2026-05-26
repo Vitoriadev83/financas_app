@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from datetime import date
-from database import (criar_tabelas, salvar_configuracao, buscar_configuracao, adicionar_conta, adicionar_lancamento, buscar_lacamentos, buscar_contas, atualizar_status_conta,deletar_lancamento)
+from database import (criar_tabelas, salvar_configuracao, buscar_configuracao, adicionar_conta, adicionar_lancamento, buscar_lacamentos, buscar_contas, atualizar_status_conta,deletar_lancamento,
+                      deletar_conta)
 
 st.set_page_config(
   page_title = "Minhas Finanças",
@@ -238,8 +239,13 @@ with aba4:
       else:
         emoji = "⌛"
 
-      col1.markdown(f"{emoji}  **{c[1]} **- vence {c[3]}") 
+      from datetime import datetime 
+      vencimento_formatado = datetime.strptime(c[3], r"%Y-%m-%d").strftime(r"%d-%m-%Y")
+      col1.markdown(f"{emoji} **{c[1]} ** - vence {vencimento_formatado} ")
       col2.markdown(f"R$ {c[2]:.2f}")
+      if col3.button("🗑️", key=f"del_conta_{c[0]}"):
+        deletar_conta(c[0])
+        st.rerun()
 
       novo_status = col3.selectbox(
         "Status",

@@ -106,6 +106,13 @@ def deletar_lancamento(lancamento_id):
   conn.commit()
   conn.close()
 
+def deletar_conta(conta_id):
+  conn = conectar()
+  cursor = conn.cursor()
+  cursor.execute("DELETE FROM contas WHERE id = ?", (conta_id,))
+  conn.commit()
+  conn.close()
+
 if __name__ == "__main__":
   criar_tabelas()
   print("Banco criado com sucesso!!!")
